@@ -1,18 +1,8 @@
-# extends TextureButton  # or Button, but TextureButton is better for images
-
-# func _ready():
-# 	# Set the texture for normal state
-# 	texture_normal = preload("res://assets/empty_tile.png")
-	
-# 	# Set size to 30x30 pixels
-# 	rect_min_size = Vector2(24, 24)
-# 	rect_size = Vector2(24, 24)
-
 extends TextureButton
 
 var normal_texture = preload("res://assets/empty_tile.png")
 var hover_texture = preload("res://assets/empty_tile_hover.png")  # Create this texture for the hover effect
-var selected_texture = preload("res://assets/empty_tile_selected.png")  # Create this texture for the selected effect
+var selected_texture = preload("res://assets/blue_star.png")  # Create this texture for the selected effect
 
 var is_selected = false
 
@@ -20,9 +10,9 @@ func _ready():
 	# Set the texture for normal state
 	texture_normal = normal_texture
 	
-	# Set size to 30x30 pixels
-	rect_min_size = Vector2(24, 24)
-	rect_size = Vector2(24, 24)
+	# Set size to 35x35 pixels
+	rect_min_size = Vector2(60, 60)
+	rect_size = Vector2(60, 60)
 	
 	# Connect signals
 	connect("mouse_entered", self, "_on_mouse_entered")

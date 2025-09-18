@@ -1,0 +1,4 @@
+[gd_scene format=2]
+
+[node name="Scrolling" type="ScrollContainer"]
+rect_min_size = Vector2( 800, 800 )
