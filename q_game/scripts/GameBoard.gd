@@ -1,33 +1,77 @@
 extends Control
 
-const BUTTON_SCENE = preload("res://scenes/EmptyTile.tscn")
+const EMPTY_BUTTON_SCENE = preload("res://scenes/EmptyTile.tscn")
+const USER_BUTTON_SCENE = preload("res://scenes/UserTile.tscn")
+
+var COLORS = ["red", "green", "blue", "yellow", "purple", "orange"]
+var SHAPES = ["star", "circle", "diamond", "square", "8star", "clover"]
+var TILE_TEXTURES = []  # Will hold all 36 textures
+var selected_tile_texture = null  # This holds the texture to place on the board
 
 func _ready():
-	# Get the GridContainer and ScrollContainer nodes
 	var grid = $ScrollContainer/GridContainer
-	var scroll = $ScrollContainer  # Assuming you've added a ScrollContainer node in the scene
+	var scroll = $ScrollContainer
+	var top_container = $TopContainer
+	var bottom_container = $BottomContainer
 
-	# Set GridContainer to a fixed size with a margin of 200px from top and bottom
-	var available_height = 600 # The space available for the grid
+	var available_height = 600
 	var available_width = 1000
 
-	grid.rect_min_size = Vector2(available_width, available_height)
-	
-	# We are fixing rows to be 25, and columns to 25.
-	var rows = 25  # Fixed number of rows
-	var columns = 25  # Fixed number of columns
+	# === GRID SETUP ===
+	var rows = 25
+	var columns = 25
+	var total_height = rows * 60
+	var total_width = columns * 60
 
-	# Calculate the total height of the grid
-	var total_height = rows * 60  # Each tile is 60px high
-	var total_width = columns * 60  # Each tile is 60px wide
+	grid.rect_min_size = Vector2(total_width, total_height)
+	scroll.rect_min_size = Vector2(1600, 500)
 
-	# Loop to create and add tiles to the grid
 	for i in range(rows * columns):
-		var btn = BUTTON_SCENE.instance()
+		var btn = EMPTY_BUTTON_SCENE.instance()
+		btn.connect("tile_clicked", self, "_on_empty_tile_clicked")
 		grid.add_child(btn)
 
-	# Set the grid size dynamically to handle scrolling and ensure it fits within the viewport's available space
-	grid.rect_min_size = Vector2(total_width, total_height)  # Set width and height based on rows and columns
 
-	# ScrollContainer's size should match the available space for the grid.
-	scroll.rect_min_size = Vector2(available_width, available_height)
+	# === LOAD TILE TEXTURES ===
+	_load_tile_textures()
+
+	# === TOP & BOTTOM TILE SETUP ===
+	var all_random_textures = TILE_TEXTURES.duplicate()
+	all_random_textures.shuffle()
+	
+	for i in range(6):
+		
+		var top_btn = USER_BUTTON_SCENE.instance()
+		var bottom_btn = USER_BUTTON_SCENE.instance()
+
+		# Assign random textures
+		var top_texture = all_random_textures.pop_front()
+		var bottom_texture = all_random_textures.pop_front()
+
+		top_btn.texture_normal = top_texture
+		bottom_btn.texture_normal = bottom_texture
+
+		# Disable interactivity if needed
+		top_btn.connect("user_tile_selected", self, "_on_user_tile_selected")
+		bottom_btn.connect("user_tile_selected", self, "_on_user_tile_selected")
+
+
+		top_container.add_child(top_btn)
+		bottom_container.add_child(bottom_btn)
+
+func _on_user_tile_selected(texture):
+	selected_tile_texture = texture
+
+func _on_empty_tile_clicked(tile):
+	if selected_tile_texture:
+		tile.set_tile_texture(selected_tile_texture)
+		selected_tile_texture = null  # Clear selection after placing
+
+
+func _load_tile_textures():
+	for color in COLORS:
+		for shape in SHAPES:
+			var path = "res://assets/%s_%s.png" % [color, shape]
+			var texture = load(path)
+			if texture:
+				TILE_TEXTURES.append(texture)

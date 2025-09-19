@@ -1,10 +1,10 @@
 extends TextureButton
 
 var normal_texture = preload("res://assets/empty_tile.png")
-var hover_texture = preload("res://assets/empty_tile_hover.png")  # Create this texture for the hover effect
 var selected_texture = preload("res://assets/blue_star.png")  # Create this texture for the selected effect
 var base_texture = normal_texture
 var is_selected = false
+const HOVER_OPACITY = 0.6
 
 func _ready():
 	# Set the texture for normal state
@@ -23,23 +23,20 @@ func _ready():
 func _on_mouse_entered():
 	# Change texture when mouse hovers over
 	if not is_selected:
-		texture_normal = hover_texture
+		modulate.a = HOVER_OPACITY
 
 func _on_mouse_exited():
 	# Revert to normal texture if not selected
 	if not is_selected:
-		texture_normal = base_texture
+		modulate.a = 1.0
 
-signal tile_clicked(tile_node)
+signal user_tile_selected(texture)
 
 func _on_pressed():
-	emit_signal("tile_clicked", self)
-
-#	else:
-#		texture_normal = normal_texture
-
-func set_tile_texture(texture):
-	texture_normal = texture
-	base_texture = texture
-	is_selected = false
-
+	is_selected = !is_selected
+	texture_normal = base_texture
+	modulate.a = 1.0
+	if is_selected:
+		emit_signal("user_tile_selected", base_texture)
+	else:
+		emit_signal("user_tile_selected", null)
