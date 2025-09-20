@@ -191,6 +191,11 @@ var selected_tile_texture = null
 var selected_player_id = null
 var current_player = 1  # 1 = Top player, 2 = Bottom player
 
+var player_scores = {
+	1: 0,
+	2: 0
+}
+
 func _ready():
 	randomize()
 	
@@ -216,6 +221,7 @@ func _ready():
 
 	var all_random_textures = TILE_TEXTURES.duplicate()
 	all_random_textures.shuffle()
+	_place_initial_random_tile()
 
 	for i in range(6):
 		var top_btn = USER_BUTTON_SCENE.instance()
@@ -253,6 +259,10 @@ func _on_user_tile_selected(texture, player_id):
 
 func _on_empty_tile_clicked(tile):
 	if selected_tile_texture and selected_player_id == current_player:
+		if not _can_place_tile(tile, selected_tile_texture):
+			print("Invalid placement: must match neighbor color or shape.")
+			return
+
 		var success = tile.set_tile_texture(selected_tile_texture)
 
 		if success:
@@ -295,7 +305,59 @@ func _remove_used_tile(texture, player_id):
 			# DO NOT decrease TILE_TEXTURES_DICT here anymore
 			break
 
+func _can_place_tile(tile_node, selected_texture):
+	var grid = $ScrollContainer/GridContainer
+	var index = grid.get_children().find(tile_node)
 
+	if index == -1:
+		return false  # Tile not found in grid
+
+	var columns = 25  # Must match the column count you used
+	var neighbors = []
+
+	var up    = index - columns
+	var down  = index + columns
+	var left = -1
+	var right = -1
+
+	if index % columns != 0:
+		left = index - 1
+
+	if index % columns != columns - 1:
+		right = index + 1
+
+
+	if up >= 0: neighbors.append(grid.get_child(up))
+	if down < grid.get_child_count(): neighbors.append(grid.get_child(down))
+	if left != -1: neighbors.append(grid.get_child(left))
+	if right != -1: neighbors.append(grid.get_child(right))
+
+	var selected_name = selected_texture.resource_path.get_file().get_basename()
+	var selected_color = selected_name.split("_")[0]
+	var selected_shape = selected_name.split("_")[1]
+
+	var has_non_empty_neighbor = false
+
+	for neighbor in neighbors:
+		if not neighbor is EmptyTile:
+			continue  # Not the right type
+
+		if neighbor.is_set:
+			has_non_empty_neighbor = true
+			var neighbor_texture = neighbor.base_texture
+			var neighbor_name = neighbor_texture.resource_path.get_file().get_basename()
+			var neighbor_color = neighbor_name.split("_")[0]
+			var neighbor_shape = neighbor_name.split("_")[1]
+
+			# Must match either color or shape
+			var matches_color = (selected_color == neighbor_color)
+			var matches_shape = (selected_shape == neighbor_shape)
+
+			if not (matches_color or matches_shape):
+				return false  # One of the neighbors doesn't match
+
+	# Must have at least one adjacent non-empty tile
+	return has_non_empty_neighbor
 
 func _load_tile_textures():
 	for color in COLORS:
@@ -304,7 +366,7 @@ func _load_tile_textures():
 			var texture = load(path)
 			if texture:
 				TILE_TEXTURES.append(texture)
-				TILE_TEXTURES_DICT[texture] = 1  # Set initial count
+				TILE_TEXTURES_DICT[texture] = 15  # Set initial count
 
 func _update_tile_turns():
 	var end_turn_button = $EndTurnButton
@@ -358,3 +420,22 @@ func _get_random_available_texture():
 		return null
 
 	return available[randi() % available.size()]
+
+func _place_initial_random_tile():
+	var grid = $ScrollContainer/GridContainer
+	var children = grid.get_children()
+
+	if children.size() == 0:
+		return
+
+	# Get random tile
+	var random_tile_index = randi() % children.size()
+	var random_tile = children[random_tile_index]
+
+	# Get random texture
+	var random_texture = _get_random_available_texture()
+
+	if random_texture and random_tile:
+		var success = random_tile.set_tile_texture(random_texture)
+		if success and TILE_TEXTURES_DICT.has(random_texture):
+			TILE_TEXTURES_DICT[random_texture] -= 1
