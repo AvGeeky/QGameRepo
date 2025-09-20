@@ -34,3 +34,11 @@ margin_top = 700.0
 margin_right = 200.0
 margin_bottom = 200.0
 alignment = 1
+
+[node name="EndTurnButton" type="Button" parent="."]
+margin_left = 178.0
+margin_top = 44.0
+margin_right = 278.0
+margin_bottom = 84.0
+rect_min_size = Vector2( 100, 40 )
+text = "End Turn"

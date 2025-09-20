@@ -1,5 +1,7 @@
 extends TextureButton
 
+class_name EmptyTile
+
 var normal_texture = preload("res://assets/empty_tile.png")
 var hover_texture = preload("res://assets/empty_tile_hover.png")  # Create this texture for the hover effect
 var selected_texture = preload("res://assets/blue_star.png")  # Create this texture for the selected effect
@@ -14,7 +16,7 @@ func _ready():
 	# Set size to 35x35 pixels
 	rect_min_size = Vector2(60, 60)
 	rect_size = Vector2(60, 60)
-	
+
 	# Connect signals
 	connect("mouse_entered", self, "_on_mouse_entered")
 	connect("mouse_exited", self, "_on_mouse_exited")
@@ -39,7 +41,11 @@ func _on_pressed():
 #		texture_normal = normal_texture
 
 func set_tile_texture(texture):
+	if base_texture != normal_texture:
+		# Already set to a non-empty tile, ignore
+		return
+
 	texture_normal = texture
 	base_texture = texture
 	is_selected = false
-
+	return true
