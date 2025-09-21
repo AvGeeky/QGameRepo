@@ -16,6 +16,7 @@ var player_scores = {
 	1: 0,
 	2: 0
 }
+var tiles_placed_this_turn = []
 
 func _ready():
 	randomize()
@@ -81,26 +82,59 @@ func _on_user_tile_selected(texture, player_id):
 func _on_empty_tile_clicked(tile):
 	if selected_tile_texture and selected_player_id == current_player:
 		if not _can_place_tile(tile, selected_tile_texture):
-			print("Invalid placement: must match neighbor color or shape.")
+			print("Invalid placement.")
 			return
 
 		var success = tile.set_tile_texture(selected_tile_texture)
 
 		if success:
+			# Track placed tile + its texture
+			tiles_placed_this_turn.append({
+				"tile": tile,
+				"texture": selected_tile_texture
+			})
+
 			_remove_used_tile(selected_tile_texture, selected_player_id)
 			selected_tile_texture = null
 			selected_player_id = null
 
 func _on_end_turn_pressed():
+	if tiles_placed_this_turn.size() == 0:
+		print("No tiles placed this turn.")
+		return
+
+	var turn_score = 0
+	for placement in tiles_placed_this_turn:
+		var tile = placement["tile"]
+		var texture = placement["texture"]
+		var index = $ScrollContainer/GridContainer.get_children().find(tile)
+		turn_score += _calculate_score(index, texture)
+
+	# Hand Bonus (player used all tiles this turn)
+	if _player_played_all_tiles(current_player):
+		turn_score += 6
+		print("HAND BONUS! +6 Points")
+
+	player_scores[current_player] += turn_score
+
+	print("Player %d scored %d this turn. Total: %d" % [
+		current_player, turn_score, player_scores[current_player]
+	])
+
+	# Update UI if needed
+	$TopScoreLabel.text = "Player 1: %d" % player_scores[1]
+	$BottomScoreLabel.text = "Player 2: %d" % player_scores[2]
+
+	# Clean up for next turn
+	tiles_placed_this_turn.clear()
 	selected_tile_texture = null
 	selected_player_id = null
-	
+
 	_refill_player_tiles(current_player)
 	current_player = 2 if current_player == 1 else 1
-	print("Now it's Player %d's turn" % current_player)
-	
+
 	_update_tile_turns()
-	
+
 func _remove_used_tile(texture, player_id):
 	var container = $TopContainer if player_id == 1 else $BottomContainer
 
@@ -260,3 +294,99 @@ func _place_initial_random_tile():
 		var success = random_tile.set_tile_texture(random_texture)
 		if success and TILE_TEXTURES_DICT.has(random_texture):
 			TILE_TEXTURES_DICT[random_texture] -= 1
+
+func _calculate_score(index, texture):
+	var grid = $ScrollContainer/GridContainer
+	var columns = 25
+	var total_score = 1  # +1 base point for placing a tile
+
+	var texture_name = texture.resource_path.get_file().get_basename()
+	var selected_color = texture_name.split("_")[0]
+	var selected_shape = texture_name.split("_")[1]
+
+	var row_score = _count_line(index, columns, 1, selected_color, selected_shape)  # horizontal
+	var col_score = _count_line(index, columns, columns, selected_color, selected_shape)  # vertical
+
+	total_score += row_score
+	total_score += col_score
+
+	# Check for Q bonus in row or column
+	if row_score + 1 == 6 and _is_q_line(index, columns, 1):
+		total_score += 10
+		print("Q BONUS! +10 Points (Row)")
+
+	if col_score + 1 == 6 and _is_q_line(index, columns, columns):
+		total_score += 10
+		print("Q BONUS! +10 Points (Column)")
+
+	return total_score
+
+func _count_line(index, columns, step, color, shape):
+	var grid = $ScrollContainer/GridContainer
+	var count = 0
+
+	# Check in both directions
+	for direction in [-1, 1]:
+		var i = index + step * direction
+		while i >= 0 and i < grid.get_child_count():
+			var tile = grid.get_child(i)
+			if tile is EmptyTile and tile.is_set:
+				var tname = tile.base_texture.resource_path.get_file().get_basename()
+				var tcolor = tname.split("_")[0]
+				var tshape = tname.split("_")[1]
+
+				# If it matches either color or shape, continue
+				if tcolor == color or tshape == shape:
+					count += 1
+					i += step * direction
+				else:
+					break
+			else:
+				break
+
+	return count
+
+func _is_q_line(index, columns, step):
+	var grid = $ScrollContainer/GridContainer
+	var textures = []
+
+	textures.append(grid.get_child(index).base_texture)
+
+	for direction in [-1, 1]:
+		var i = index + step * direction
+		while i >= 0 and i < grid.get_child_count():
+			var tile = grid.get_child(i)
+			if tile is EmptyTile and tile.is_set:
+				textures.append(tile.base_texture)
+				i += step * direction
+			else:
+				break
+
+	if textures.size() != 6:
+		return false
+
+	var colors = []
+	var shapes = []
+
+	for tex in textures:
+		var name = tex.resource_path.get_file().get_basename()
+		var color = name.split("_")[0]
+		var shape = name.split("_")[1]
+
+		if not color in colors:
+			colors.append(color)
+		if not shape in shapes:
+			shapes.append(shape)
+
+	# Q = all same color + 6 unique shapes OR all same shape + 6 unique colors
+	var is_q = (colors.size() == 1 and shapes.size() == 6) or (shapes.size() == 1 and colors.size() == 6)
+	return is_q
+
+func _player_played_all_tiles(player_id):
+	var container = $TopContainer if player_id == 1 else $BottomContainer
+
+	for child in container.get_children():
+		if child is UserTile:
+			return false  # Still has at least one tile
+
+	return true

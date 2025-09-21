@@ -1,5 +1,7 @@
 extends TextureButton
 
+class_name UserTile
+
 var normal_texture = preload("res://assets/empty_tile.png")
 var base_texture = normal_texture
 var is_selected = false
