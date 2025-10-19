@@ -1,0 +1,43 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=4
+
+_global_script_classes=[ {
+"base": "TextureButton",
+"class": "EmptyTile",
+"language": "GDScript",
+"path": "res://scripts/EmptyTile.gd"
+}, {
+"base": "TextureButton",
+"class": "UserTile",
+"language": "GDScript",
+"path": "res://scripts/UserTile.gd"
+} ]
+_global_script_class_icons={
+"EmptyTile": "",
+"UserTile": ""
+}
+
+[application]
+
+config/name="Q_Game"
+run/main_scene="res://scenes/GameBoard.tscn"
+config/icon="res://icon.png"
+
+[gui]
+
+common/drop_mouse_on_gui_input_disabled=true
+
+[physics]
+
+common/enable_pause_aware_picking=true
+
+[rendering]
+
+environment/default_environment="res://default_env.tres"
